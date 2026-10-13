@@ -97,6 +97,7 @@ Life2English/
 │   ├── data/scenarios.json   #   参考示例场景数据（8 个，与逻辑分离）
 │   └── life2english/         #   核心逻辑（识别/任务/对话/反馈/迁移/总结）
 ├── references/               # 参考资料（SKILL.md 通过 @ 引用）
+│   ├── teaching_guide.md     #   动态教学执行细则（角色/反馈/迁移/异常）
 │   ├── protocol.md           #   输入输出协议
 │   └── scenarios.md          #   参考示例场景库总览
 ├── templates/                # 模板文件
