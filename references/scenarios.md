@@ -4,7 +4,7 @@
 
 > **定位：参考示例 + 质量基准，不是支持范围的上限。**
 > 在模型环境（轨道 A）中，任意合理场景都应**动态构建**，遇到不在本表内的场景不得拒绝；
-> 本文件的 8 个示例用于对照「一次合格练习应包含什么」（情境 / 目标 / 实用表达 / 常见错误 / 迁移 / 注意事项）。
+> 本文件的 11 个示例用于对照「一次合格练习应包含什么」（情境 / 目标 / 实用表达 / 常见错误 / 迁移 / 注意事项）。
 > 数据源：`scripts/data/scenarios.json`（示例与逻辑分离，新增示例只需改数据），版本 1.3。
 
 ## 场景索引
@@ -16,9 +16,15 @@
 | `movie_talk` | 与外国同学讨论电影 | 入门-进阶 | 社交、娱乐、讨论 | 我想和外国同学讨论电影 |
 | `campus_life` | 介绍大学生活 | 入门 | 校园、介绍、日常 | 我想介绍我的大学生活 |
 | `class_question` | 课堂提问与答疑 | 入门 | 校园、学习、课堂、师生沟通 | 我想练习在课堂上向老师提问 |
+| `class_extension` | 申请延期交作业 | 进阶 | 校园、学习、师生沟通、请求 | 我想向教授申请延期交作业 |
 | `part_time_job` | 兼职面试与工作沟通 | 进阶 | 就业、面试、职场、实习 | 我想练习英文兼职面试 |
 | `campus_canteen` | 食堂点餐与沟通 | 入门 | 日常服务、餐饮、消费、校园 | 我想练习在食堂点餐 |
+| `restaurant_complaint` | 在餐厅处理点餐错误 | 进阶 | 日常服务、消费、餐厅、投诉 | 我想练习在餐厅处理点餐错误 |
+| `landlord_repair` | 与房东沟通房屋维修 | 进阶 | 住宿、日常服务、协商 | 我想练习和房东沟通房屋维修 |
 | `dorm_life` | 宿舍生活与舍友沟通 | 入门 | 校园、社交、日常、住宿 | 我想练习和舍友用英语沟通 |
+
+> 沟通目标覆盖：服务请求（点单/点餐）、闲聊、介绍、自我推荐、澄清提问、
+> **请求宽限（class_extension）**、**投诉补救（restaurant_complaint）**、**协商（landlord_repair）**。
 
 ## 各场景详情
 
@@ -204,6 +210,78 @@
   - ❌ I want you clean the room → ✅ Shall we take turns cleaning the room?
   - ❌ 直接抱怨显生硬，先说 I have an early class 给出理由更易被接受
 - **下一步建议**：下次可以练习和舍友商量周末出行计划：Shall we go hiking this Saturday?
+
+### 申请延期交作业（`class_extension`）
+
+- **情境**：用英语向教授说明情况、礼貌申请作业延期并给出补交方案
+- **学习目标**：学会用英语礼貌地向教授申请作业延期：说明原因、给出补交时间、表达歉意与感谢。
+- **核心关键词**：申请延期、延期交作业、作业延期、延期、宽限
+- **扩展关键词**：教授、老师、作业、论文、来不及、身体不舒服、冲突、补交
+- **实用表达**：
+  - `Could I ask for a short extension on the assignment?` —— 我可以申请把作业延后一点交吗？（ask for an extension 是地道说法）
+  - `I'm sorry to ask, but I've been struggling to finish it on time.` —— 很抱歉开口，但我有点来不及按时完成了。（先致歉再说明困难）
+  - `Would it be possible to submit it by next Monday?` —— 可以下周一前交吗？（给出具体新时间，比 later 可信）
+  - `I've already finished most of it — I just need a few more days to check the data.` —— 我已经完成大部分了，只差几天核对数据。（说明进度）
+  - `Thank you for your understanding. I'll make sure to submit it on time.` —— 谢谢您的理解，我会按时交上。（致谢并承诺）
+- **情境互动**：对话对象「教授」，4 轮，开场：Yes, come in. What can I do for you?
+- **迁移练习**：向社团负责人申请晚交报名材料 (club application deadline) —— 假设报名截止临近，你想申请晚一天交材料，请用本场景句式说一句。
+- **注意事项**：
+  - 先致歉再提请求（I'm sorry to ask…），比直接要延期更容易被接受
+  - 一定要给出具体的新时间与完成进度，而不是只说 I'm late
+  - 对教授用正式语气，避免缩写与过于随意的说法
+- **常见错误**：
+  - ❌ Give me more time. 太命令 → ✅ Could I ask for a short extension?
+  - ❌ 只陈述困难 I can't finish it. → 补上计划：Would it be possible to submit it by next Monday?
+  - ❌ 只说 I'm busy 理由笼统 → 给出具体原因（课程冲突 / 生病 / 数据没跑完）
+- **下一步建议**：练习用英语写一封简短的申请延期邮件（greeting + reason + new deadline + thanks）。
+
+### 在餐厅处理点餐错误（`restaurant_complaint`）
+
+- **情境**：用英语在餐厅说明上错/漏上的菜，礼貌要求更换或更正
+- **学习目标**：学会用英语在餐厅礼貌地指出点餐错误、说明问题并要求更换或更正。
+- **核心关键词**：点餐错误、上错菜、上菜错误、退菜、换菜、点错
+- **扩展关键词**：餐厅、服务员、投诉、订单、打包、结账、少上、漏上
+- **实用表达**：
+  - `Excuse me, I think there's a mix-up with my order.` —— 不好意思，我的订单好像弄错了。（用 mix-up 比 You made a mistake 委婉）
+  - `I ordered the grilled chicken, but I got the fish instead.` —— 我点的是烤鸡，但上的是鱼。（I ordered… but I got… 清楚对比）
+  - `Could you check the order for table 6, please?` —— 可以帮我核对一下 6 号桌的订单吗？（先请对方核实）
+  - `Would it be possible to change it for the dish I ordered?` —— 可以帮我换成我点的那道菜吗？（Would it be possible to… 更礼貌）
+  - `No worries — these things happen. Thanks for sorting it out.` —— 没事，这种事难免。谢谢你帮忙处理。（对事不对人）
+- **情境互动**：对话对象「服务员」，4 轮，开场：Hi, is everything alright with your meal?
+- **迁移练习**：在酒店前台反映房间问题 (hotel front desk) —— 假设房间空调坏了，你想礼貌地要求换房，请用本场景句式说一句。
+- **注意事项**：
+  - 先陈述事实（I ordered… but I got…）再提要求，避免一上来就指责
+  - 对事不对人，用 mix-up / these things happen 缓和语气
+  - 提出请求用 Would it be possible to… / Could you…，不要用 Give me…
+- **常见错误**：
+  - ❌ You gave me the wrong dish! 指责语气 → ✅ I think there's a mix-up with my order.
+  - ❌ Give me the right one. 太命令 → ✅ Could you change it for the dish I ordered, please?
+  - ❌ 只说 This is wrong，对方不知道错在哪 → 说清：I ordered the chicken, but I got the fish.
+- **下一步建议**：练习结账时发现多收费，如何礼貌核对账单。
+
+### 与房东沟通房屋维修（`landlord_repair`）
+
+- **情境**：用英语向房东或物业说明房屋故障、协商上门维修时间
+- **学习目标**：学会用英语向房东说明房屋故障、请求安排维修并协商上门时间。
+- **核心关键词**：房屋维修、房东、租房维修、漏水、修水管、维修
+- **扩展关键词**：租房、公寓、水管、空调、热水器、电工、上门、物业、坏了
+- **实用表达**：
+  - `Hi, I'm calling about a problem in the apartment.` —— 你好，我想反映公寓里的一个问题。（开场说明来意）
+  - `The tap in the kitchen has been leaking since yesterday.` —— 厨房的水龙头从昨天开始漏水。（现在完成进行时，强调持续）
+  - `Could you send someone to take a look?` —— 可以派人来看看吗？（比 fix it 更留余地）
+  - `Would it be possible to come sometime after 6 p.m.?` —— 可以安排晚上 6 点以后来吗？（协商时间）
+  - `Thanks for arranging it so quickly — I really appreciate it.` —— 谢谢你这么快安排，非常感谢。（达成一致后致谢）
+- **情境互动**：对话对象「房东」，4 轮，开场：Hello! How can I help you?
+- **迁移练习**：向宿舍管理员报修网络 (dorm network repair) —— 假设宿舍网络断了，请用本场景句式报修并约时间。
+- **注意事项**：
+  - 描述故障用现在完成进行时（has been leaking），强调「持续到现在」
+  - 协商时间时给出自己的可用时段，比只问 When 更容易达成一致
+  - 维修是协商而非命令：Could you… / Would it be possible to…
+- **常见错误**：
+  - ❌ The tap is broken, come and fix it. 太命令 → ✅ Could you send someone to take a look?
+  - ❌ 时态混用 The tap leaks yesterday → ✅ It has been leaking since yesterday.
+  - ❌ 不说明可用时间，只说修一下 → 给出时段，方便对方安排
+- **下一步建议**：练习维修后问题未解决，如何礼貌地再次联系房东跟进。
 
 ## 匹配规则（轨道 B · 本地脚本专用）
 
