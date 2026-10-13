@@ -6,7 +6,7 @@ description: 生活场景驱动的英语学习技能。当用户想练习某个�
 description_zh: 把一句真实生活/校园场景描述，变成一次完整的英语学习闭环：理解场景、生成学习任务、情景对话、表达反馈、迁移练习与学习总结。支持任意合理场景，不限预设列表。
 description_en: Turn a real-life or campus scenario description into a complete English learning loop: scenario understanding, task generation, role-play dialogue, expression feedback, transfer practice, and a learning summary. Works for any reasonable scenario, not just a preset list.
 category: education
-version: 1.4.0
+version: 1.4.1
 author: Life2English
 ---
 
@@ -39,7 +39,10 @@ author: Life2English
 
 - **场景背景**：在哪里、发生什么；
 - **参与角色与关系**：对方是谁（店员 / 教授 / 房东 / HR / 舍友…），与用户是什么关系（服务 / 上下级 / 平等）；
-- **沟通目标**：用户这次到底想达成什么（点单 / 请求 / 协商 / 投诉 / 拒绝 / 致歉 / 自我推荐…）；
+- **沟通目标**：用户这次到底想达成什么。**先归入目标类型，再定教学侧重**——
+  常见 **9 类**：**请求/求助、协商、投诉/补救、拒绝/婉拒、致歉/解释、自我推荐、闲聊/建立关系、澄清/确认、紧急/突发**
+  （每类的语言功能侧重与教学重点见 [@references/teaching_guide.md](references/teaching_guide.md) §1）；
+  目标是**复合**的（如「面试中解释一个困难」= 自我推荐 + 解释）时，**取主目标**先推进，并一句话说明假设；
 - **用户英语水平**：不明确时按合理默认（中国大学生、中级偏下、能读但开口生疏）；必要时在澄清步骤询问；
 - **需要练习的语言功能**：如礼貌请求、委婉拒绝、澄清确认、商务套话等；
 - **关键表达与可能的对话分支**；
