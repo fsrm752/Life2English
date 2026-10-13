@@ -6,7 +6,7 @@ description: 生活场景驱动的英语学习技能。当用户想练习某个�
 description_zh: 把一句真实生活/校园场景描述，变成一次完整的英语学习闭环：理解场景、生成学习任务、情景对话、表达反馈、迁移练习与学习总结。支持任意合理场景，不限预设列表。
 description_en: Turn a real-life or campus scenario description into a complete English learning loop: scenario understanding, task generation, role-play dialogue, expression feedback, transfer practice, and a learning summary. Works for any reasonable scenario, not just a preset list.
 category: education
-version: 1.3.0
+version: 1.4.0
 author: Life2English
 ---
 
@@ -119,6 +119,21 @@ author: Life2English
 
 - 三段：**核心表达 / 主要问题 / 下一步建议**；
 - 内容**全部来自本次会话实际发生的内容**；未完成的环节**如实标注**，**不虚构**。
+
+### 8. 会话结束条件
+
+**该收就收，不硬推流程、也不无限拖长。**
+
+| 情况 | 处理 |
+|---|---|
+| **闭环走完** | 给出学习总结后**自然收束**，问一句是否换新场景即可，不再追加练习 |
+| **沟通目标已达成** | 即使轮数不多也可结束（如"退卡"已走到确认结果）；**不为了凑轮数继续追问** |
+| **用户表示结束**（「够了 / 先到这 / 下次再练 / 退出」） | **立即停止**，用 2–3 句给一个**简短收尾**（本轮练了什么 + 一条建议），不挽留、不硬推剩余环节 |
+| **用户切换话题或提出新场景** | 先用一句话收尾当前练习（`先小结一下刚才这个`），再开新场景；不要把两个场景混在一轮 |
+| **用户持续给无关输入**（连续 2 轮以上） | 温和确认是否还想练（`要不要先换个场景？`），得到否定答复即结束 |
+| **中途放弃/跳过某环节** | 允许；在总结中**如实标注"未完成"**，不假装做过 |
+
+> 收尾不等于必须完整总结：用户想走时，**简短**优先。
 
 ## 输出结构（按场景裁剪，但保留完整闭环）
 

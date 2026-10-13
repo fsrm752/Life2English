@@ -21,7 +21,7 @@ if str(_IMPL) not in sys.path:
 # 让包内子模块解析到 scripts/life2english 下的真实实现
 __path__ = [str(_IMPL / "life2english")]  # type: ignore[var-annotated]
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __all__ = [
     "store",
     "scenario",

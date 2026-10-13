@@ -155,7 +155,7 @@
 
 ## 9. action: version
 
-返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.3.0"}`。
+返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.4.0"}`。
 
 ## 错误处理
 

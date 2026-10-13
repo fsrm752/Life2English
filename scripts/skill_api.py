@@ -42,7 +42,7 @@ from life2english import transfer as transfer_mod          # noqa: E402
 from life2english.session import LearningSession           # noqa: E402
 from life2english.store import SceneStore                  # noqa: E402
 
-SKILL_VERSION = "1.3.0"
+SKILL_VERSION = "1.4.0"
 
 MATCH_LABELS = {
     "strong": "完全匹配",
