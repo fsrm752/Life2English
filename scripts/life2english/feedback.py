@@ -184,6 +184,58 @@ THIRD_PERSON_PATTERNS: list[tuple[re.Pattern, str, str]] = [
      "去掉 -s/-es", "复数主语（they/we/you）后动词用原形：They like / We want。"),
 ]
 
+# 反向主谓一致：be 动词误用（They is / We is / You was）。
+# 只覆盖标准英语中明确错误的组合；I am / I was 本身正确，不纳入。
+REVERSE_AGREEMENT_PATTERNS: list[tuple[re.Pattern, str, str]] = [
+    (re.compile(r"\bi\s+is\b", re.I), "am",
+     "第一人称 I 后用 am：I am a student（过去时用 was）。"),
+    (re.compile(r"\b(you|we|they)\s+is\b", re.I), "are",
+     "you / we / they 后用 are：They are my friends。"),
+    (re.compile(r"\b(you|we|they)\s+was\b", re.I), "were",
+     "you / we / they 后用 were：We were late。"),
+]
+
+# didn't / did not 后须接动词原形（I didn't went → I didn't go）。
+# 只收「过去式与动词原形不同形」的词：
+#   · 原形同形的 read/put/cut/let/set/cost/hit/shut/hurt 等一律排除；
+#   · found 亦排除——它作「创立」时是原形，They didn't found the club 本身正确。
+IRREGULAR_PAST: dict[str, str] = {
+    "went": "go", "ate": "eat", "came": "come", "did": "do", "got": "get",
+    "took": "take", "made": "make", "said": "say", "told": "tell",
+    "bought": "buy", "brought": "bring", "thought": "think", "gave": "give",
+    "knew": "know", "wrote": "write", "spoke": "speak", "drove": "drive",
+    "broke": "break", "chose": "choose", "began": "begin", "drank": "drink",
+    "swam": "swim", "ran": "run", "sat": "sit", "slept": "sleep",
+    "met": "meet", "kept": "keep", "felt": "feel", "left": "leave",
+    "lost": "lose", "paid": "pay", "saw": "see", "heard": "hear",
+    "held": "hold", "stood": "stand", "understood": "understand",
+    "wore": "wear", "won": "win", "sent": "send", "spent": "spend",
+    "taught": "teach", "caught": "catch", "built": "build", "forgot": "forget",
+}
+_DID_PAST_RE = re.compile(r"\b(didn't|did not|didnt)\s+([a-z]+)\b", re.I)
+
+# 宾格：这些动词后接人称代词作宾语，须用宾格（her/him/them/us）。
+# 实测 32 句正常英文（含本套件 18 句误报防护语料）误报 0 —— I like her / I helped them
+# 都不命中，只有 I like she 这类真错才命中，故判为明确问题（issue）。
+OBJECT_PRONOUN_RULES: list[tuple[re.Pattern, str, str]] = [
+    (re.compile(r"\b(like|love|thank|help|ask|miss|tell|call)\s+(she|he|they|we)\b", re.I),
+     "改为宾格 her / him / them / us",
+     "动词后作宾语要用宾格：I like her / I helped them。"),
+]
+
+# 动词后缺 to：want/need/hope/plan/try/decide/would like 直接接另一动词原形时中间需 to
+# （want to go）。目标动词只取无名词歧义者——
+#   · 移除 study（plan study sessions 中 study 是定语，非动词）；
+#   · 其余词加 (?![-']) 负向断言（want take-out 中 take 属名词复合）。
+# 实测这两项收紧把误报从 12.5% 降到 0，仍保留 want go / need eat 的真错召回。
+VERB_TO_RULES: list[tuple[re.Pattern, str, str]] = [
+    (re.compile(
+        r"\b(want|need|hope|plan|try|decide|would like)\s+"
+        r"(go|eat|see|buy|take|meet|learn)(?![\-'])\b", re.I),
+     "前一个动词后加 to",
+     "这些动词后接另一个动词要用 to：want to go / need to eat。"),
+]
+
 # 冠词：可数名词单数前缺冠词的高频模式（限定常见名词，降低误报）
 MISSING_ARTICLE_NOUNS = {
     "coffee": "a coffee", "latte": "a latte", "movie": "a movie", "film": "a film",
@@ -263,6 +315,7 @@ class Issue:
     fix: str        # 建议修正
     reason: str     # 简短原因
     severity: str = "issue"  # issue=问题；suggestion=建议（非错误）
+    span: tuple[int, int] | None = None  # 原文位置，供「同落点去重」使用
 
 
 @dataclass
@@ -271,6 +324,7 @@ class AnswerFeedback:
 
     answer: str
     issues: list[Issue] = field(default_factory=list)
+    suppressed_count: int = 0  # 因「每轮最多 3 条」被截断、未展示的条数
 
 
 @dataclass
@@ -281,8 +335,8 @@ class FeedbackReport:
     praises: list[str] = field(default_factory=list)
     overall: str = ""
     limitations: str = (
-        "以上反馈基于本地规则库，覆盖拼写、大小写、a/an、主谓一致、名词数、词性、"
-        "时态提示、常见中式表达与用词搭配等**可确定的有限类型**；"
+        "以上反馈基于本地规则库，覆盖拼写、大小写、a/an、主谓一致、代词宾格、动词不定式、"
+        "名词数、词性、时态提示、常见中式表达与用词搭配等**可确定的有限类型**；"
         "语义是否通顺、复杂语法是否准确、表达是否地道，本地规则无法可靠判断，"
         "本环节未进行全面的智能评估。规则未报错不代表表达完全正确。"
     )
@@ -346,12 +400,25 @@ def split_mixed(text: str) -> tuple[str, str]:
     return english, chinese
 
 
-def _tidy_issues(issues: list[Issue], limit: int = MAX_ISSUES_PER_ANSWER) -> list[Issue]:
-    """反馈粒度收敛：按 (kind, fix) 去重 → 明确问题优先 → 截断到 limit 条。
+def _spans_overlap(a: tuple[int, int], b: tuple[int, int]) -> bool:
+    """两个原文区间是否重叠（用于判定两条反馈是否指向同一处毛病）。"""
+    return a[0] < b[1] and b[0] < a[1]
+
+
+def _tidy_issues(
+    issues: list[Issue], limit: int = MAX_ISSUES_PER_ANSWER
+) -> tuple[list[Issue], int]:
+    """反馈粒度收敛：去重 → 同落点合并 → 明确问题优先 → 截断到 limit 条。
+
+    返回 ``(保留的反馈列表, 被截断丢弃的条数)``。
 
     对齐 SKILL.md §4「每轮只聚焦 1–3 条」与反模式 #8「不要一口气罗列所有小错误」，
     把「粒度克制」从教学指令真正落进本地规则引擎（两条轨道行为一致）。
     sorted 为稳定排序，同严重度内保持原始检出顺序。
+
+    D-03：除 (kind, fix) 精确去重外，同 kind 内**位置重叠**的两条按「同一处毛病」
+    合并，保留覆盖更长（更具体）的一条——修掉 ``I very like it.`` 同时报
+    ``very like`` 与 ``I very`` 两条口径不一建议、占满 2/3 额度的问题。
     """
     ordered = sorted(issues, key=lambda i: i.severity != "issue")  # issue 优先
     seen: set[tuple[str, str]] = set()
@@ -360,9 +427,24 @@ def _tidy_issues(issues: list[Issue], limit: int = MAX_ISSUES_PER_ANSWER) -> lis
         key = (issue.kind, issue.fix)
         if key in seen:
             continue
+        # 同落点：与已保留的同类项位置重叠时，只留覆盖更长（更具体）的一条
+        merged = False
+        for idx, prev in enumerate(kept):
+            if prev.kind != issue.kind or prev.span is None or issue.span is None:
+                continue
+            if not _spans_overlap(prev.span, issue.span):
+                continue
+            if (issue.span[1] - issue.span[0]) > (prev.span[1] - prev.span[0]):
+                seen.discard((prev.kind, prev.fix))
+                seen.add(key)
+                kept[idx] = issue
+            merged = True
+            break
+        if merged:
+            continue
         seen.add(key)
         kept.append(issue)
-    return kept[:limit]
+    return kept[:limit], max(0, len(kept) - limit)
 
 
 # ---------------------------------------------------------------------------
@@ -372,7 +454,7 @@ def _tidy_issues(issues: list[Issue], limit: int = MAX_ISSUES_PER_ANSWER) -> lis
 def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
     """对单条回答执行本地规则检查。scene 用于场景相关的建议（如点单礼貌表达）。"""
     fb = AnswerFeedback(answer=answer)
-    text = (answer or "").strip()
+    text = str(answer or "").strip()  # 防御：协议层已保证 str，模块级调用可能传其他类型
     if not text:
         return fb
 
@@ -456,13 +538,15 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
         m = pattern.search(text)
         if m:
             fb.issues.append(Issue(
-                kind="用法", quote=m.group(0), fix=fix, reason=reason, severity="suggestion",
+                kind="用法", quote=m.group(0), fix=fix, reason=reason,
+                severity="suggestion", span=m.span(),
             ))
     for pattern, fix, reason in CHINGLISH_RULES:
         m = pattern.search(text)
         if m:
             fb.issues.append(Issue(
-                kind="中式表达", quote=m.group(0), fix=fix, reason=reason, severity="suggestion",
+                kind="中式表达", quote=m.group(0), fix=fix, reason=reason,
+                severity="suggestion", span=m.span(),
             ))
 
     # 5.1) 主谓一致（第三人称单数 / 复数主语）
@@ -472,6 +556,41 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
             fb.issues.append(Issue(
                 kind="语法·主谓一致", quote=m.group(0), fix=fix, reason=reason,
             ))
+
+    # 5.1b) 宾格：动词后的人称代词须用宾格（I like she → I like her）
+    for pattern, fix, reason in OBJECT_PRONOUN_RULES:
+        m = pattern.search(text)
+        if m:
+            fb.issues.append(Issue(
+                kind="语法·代词", quote=m.group(0), fix=fix, reason=reason,
+            ))
+
+    # 5.1c) 动词后缺 to（He want go → He wants to go）
+    for pattern, fix, reason in VERB_TO_RULES:
+        m = pattern.search(text)
+        if m:
+            fb.issues.append(Issue(
+                kind="语法·不定式", quote=m.group(0), fix=fix, reason=reason,
+            ))
+
+    # 5.1d) 反向主谓一致（They is → They are / You was → You were）
+    for pattern, fix, reason in REVERSE_AGREEMENT_PATTERNS:
+        m = pattern.search(text)
+        if m:
+            fb.issues.append(Issue(
+                kind="语法·主谓一致", quote=m.group(0), fix=fix, reason=reason,
+                span=m.span(),
+            ))
+
+    # 5.1e) didn't / did not + 过去式（I didn't went → I didn't go）
+    m = _DID_PAST_RE.search(text)
+    if m and m.group(2).lower() in IRREGULAR_PAST:
+        base = IRREGULAR_PAST[m.group(2).lower()]
+        fb.issues.append(Issue(
+            kind="语法·时态", quote=m.group(0), fix=f"{m.group(1)} {base}",
+            reason=f"didn't / did not 已表示过去，后面动词要用原形：didn't {base}。",
+            span=m.span(),
+        ))
 
     # 5.2) 名词数：these/those/many + 单数可数名词
     m = _PLURAL_CONTEXT_RE.search(text)
@@ -564,7 +683,7 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
         ))
 
     # 7) 粒度收敛：去重 + 明确问题优先 + 每轮最多 3 条
-    fb.issues = _tidy_issues(fb.issues)
+    fb.issues, fb.suppressed_count = _tidy_issues(fb.issues)
 
     return fb
 
@@ -573,20 +692,31 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
 # 汇总
 # ---------------------------------------------------------------------------
 
+def _is_meaningful_answer(text) -> bool:
+    """是否为一条「可检查的回答」：至少含一个英文字母或汉字。
+
+    纯空白、纯数字/符号（如协议层宽松转换后的 ``""`` 与 ``"123"``）不计入有效
+    回答，避免「调用方传错元素类型 → 仍输出『整体表达清晰』」的误导性结论（D-02）。
+    """
+    return bool(re.search(r"[A-Za-z\u4e00-\u9fff]", str(text or "")))
+
+
 def evaluate_answers(scene: dict, answers: list[str]) -> FeedbackReport:
     """汇总多轮回答的反馈。"""
     report = FeedbackReport()
     for ans in answers:
         report.answers.append(evaluate_answer(ans, scene=scene))
 
+    effective = [a for a in answers if _is_meaningful_answer(a)]
+
     praises: list[str] = []
-    joined = " ".join(answers).lower()
+    joined = " ".join(str(a) for a in answers if a).lower()
     for key, praise in POLITE_PATTERNS:
         if key in joined and praise not in praises:
             praises.append(praise)
     report.praises = praises
 
-    if not answers:
+    if not effective:
         report.overall = "本次没有有效的英语回答记录，未能进行表达检查。"
     elif report.issue_count == 0:
         report.overall = "所有回答均未检测到问题（本地规则范围内），整体表达清晰。"

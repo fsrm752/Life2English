@@ -42,7 +42,7 @@ from life2english import transfer as transfer_mod          # noqa: E402
 from life2english.session import LearningSession           # noqa: E402
 from life2english.store import SceneStore                  # noqa: E402
 
-SKILL_VERSION = "1.4.2"
+SKILL_VERSION = "1.4.3"
 
 MATCH_LABELS = {
     "strong": "完全匹配",
@@ -207,7 +207,12 @@ def _act_feedback(store: SceneStore, req: dict) -> dict:
     report = feedback_mod.evaluate_answers(scene, answers)
     return {
         "answers": [
-            {"answer": fb.answer, "issues": [_issue_to_dict(i) for i in fb.issues]}
+            {
+                "answer": fb.answer,
+                "issues": [_issue_to_dict(i) for i in fb.issues],
+                # D-09：因「每轮最多 3 条」被截断而未展示的条数，透明化而非静默丢弃
+                "suppressed_count": fb.suppressed_count,
+            }
             for fb in report.answers
         ],
         "praises": report.praises,

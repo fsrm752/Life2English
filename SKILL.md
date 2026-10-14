@@ -6,7 +6,7 @@ description: 生活场景驱动的英语学习技能。当用户想练习某个�
 description_zh: 把一句真实生活/校园场景描述，变成一次完整的英语学习闭环：理解场景、生成学习任务、情景对话、表达反馈、迁移练习与学习总结。支持任意合理场景，不限预设列表。
 description_en: Turn a real-life or campus scenario description into a complete English learning loop: scenario understanding, task generation, role-play dialogue, expression feedback, transfer practice, and a learning summary. Works for any reasonable scenario, not just a preset list.
 category: education
-version: 1.4.2
+version: 1.4.3
 author: Life2English
 ---
 
@@ -177,7 +177,7 @@ echo '{"action":"run","scene_id":"campus_canteen","answers":["Could I get a set 
 ```
 
 > **轨道 B 的能力局限（如实声明）**：
-> - 表达反馈覆盖拼写、大小写、a/an、主谓一致、名词数、词性、时态提示、常见中式表达与搭配等**有限类型**
+> - 表达反馈覆盖拼写、大小写、a/an、主谓一致、代词宾格、动词不定式、名词数、词性、时态提示、常见中式表达与搭配等**有限类型**
 >   （问题与建议分级展示）；**语义通顺度、复杂语法、地道性无法可靠判断**，不得夸大；
 > - 情境应答为**模板化**，不是真实 AI 对话；
 > - 仅支持下文 11 个预设场景，其余走「先声明局限、再给近似练习」的兜底；

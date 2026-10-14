@@ -133,9 +133,14 @@
 |---|---|---|
 | `answers[].answer` | string | 原始回答 |
 | `answers[].issues[]` | object[] | `kind` 类别 / `quote` 原文 / `fix` 建议 / `reason` 原因 / `severity`（`issue` 问题，`suggestion` 建议） |
+| `answers[].suppressed_count` | integer | 因「每轮最多 3 条」被截断、未展示的条数；>0 时应告知用户「另有 N 条未列出」 |
 | `praises[]` | string[] | 用得好的地方 |
-| `overall` | string | 总体结论 |
+| `overall` | string | 总体结论；`answers` 全部为空白或非文本时明确说明「没有有效的英语回答记录」，**不给出肯定评价** |
 | `limitations` | string | **能力局限声明（必须原样呈现给用户）** |
+
+> 元素类型：`answers` 内的非字符串元素会被宽松转换为文本（`null` → `""`、`123` → `"123"`），
+> 不会中断整次调用；转换后不含任何英文字母或汉字的条目**不计入「有效回答」**，
+> 因此 `overall` 不会对这类输入输出「整体表达清晰」。
 
 ## 6. action: transfer
 
@@ -175,7 +180,7 @@
 
 ## 9. action: version
 
-返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.4.2"}`。
+返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.4.3"}`。
 
 ## 错误处理
 

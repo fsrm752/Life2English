@@ -65,17 +65,41 @@ class RecognitionResult:
     message: str = ""
 
 
-def _has_meaningful_content(raw: str, common_en_words: set[str]) -> bool:
-    """判断输入是否「可理解」：含中文字符，或至少含一个常见英语单词。
+def _has_meaningful_content(
+    raw: str,
+    common_en_words: set[str],
+    scene_en_words: set[str] | None = None,
+) -> bool:
+    """判断输入是否「可理解」：含中文字符，或至少含一个已知英语单词。
 
-    「asdfghjkl」这类不含中文、也不含任何常见英文词的输入视为无法理解。
+    「asdfghjkl」这类不含中文、也不含任何已知英文词的输入视为无法理解。
+
+    D-01：词表必须并入**场景关键词里的英文词**。技能自己写进 core_keywords 的
+    `cafe`（coffee_ordering）若不在词表内，用户单独说 `cafe` 会被回「无法理解
+    该输入」——属声明与实现不一致。词表与场景数据同源后，场景新增英文关键词
+    无需在两处维护。
     """
     if _CJK_RE.search(raw):
         return True
     words = _EN_WORD_RE.findall(raw)
     if not words:
         return False
-    return any(w.lower() in common_en_words for w in words)
+    vocab = common_en_words | (scene_en_words or set())
+    return any(w.lower() in vocab for w in words)
+
+
+def scene_english_words(scenes: list[dict]) -> set[str]:
+    """收集全部场景关键词里出现的英文单词（供输入门控的词表使用）。
+
+    与 scenarios.json 同源：场景新增英文关键词后门控自动覆盖。
+    """
+    out: set[str] = set()
+    for scene in scenes:
+        for level in ("core_keywords", "extra_keywords"):
+            for kw in scene.get(level) or []:
+                if isinstance(kw, str):
+                    out.update(w.lower() for w in _EN_WORD_RE.findall(kw))
+    return out
 
 
 def _score_scene(raw_low: str, scene: dict) -> tuple[int, list[str]]:
@@ -131,7 +155,9 @@ def recognize(
     if not raw:
         return RecognitionResult(kind="empty", message="输入为空，请描述一个生活场景。")
 
-    if not _has_meaningful_content(raw, common_en_words or set()):
+    if not _has_meaningful_content(
+        raw, common_en_words or set(), scene_english_words(scenes)
+    ):
         return RecognitionResult(kind="invalid", message="无法理解该输入，请换一种描述方式。")
 
     raw_low = raw.lower()
