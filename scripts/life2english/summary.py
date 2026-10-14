@@ -27,9 +27,12 @@ def build_summary(session) -> LearningSummary:  # session: life2english.session.
     sections: list[SummarySection] = []
 
     # 1) 场景与目标
-    match_label = {"strong": "完全匹配", "weak": "部分匹配（已确认）", "picked": "兜底推荐选择"}.get(
-        session.matched_kind, session.matched_kind
-    )
+    match_label = {
+        "strong": "完全匹配",
+        "weak": "部分匹配（已确认）",
+        "ambiguous": "并列歧义（已确认）",
+        "picked": "兜底推荐选择",
+    }.get(session.matched_kind, session.matched_kind)
     goal_lines = [
         f"场景：{scene['name']}（{match_label}）",
         f"学习目标：{session.task.goal}",

@@ -13,7 +13,12 @@ from . import summary as summary_mod
 from . import taskgen
 from . import transfer as transfer_mod
 
-MATCH_LABELS = {"strong": "完全匹配", "weak": "部分匹配（已确认）", "picked": "兜底推荐选择"}
+MATCH_LABELS = {
+    "strong": "完全匹配",
+    "weak": "部分匹配（已确认）",
+    "ambiguous": "并列歧义（已确认）",
+    "picked": "兜底推荐选择",
+}
 
 
 class LearningSession:

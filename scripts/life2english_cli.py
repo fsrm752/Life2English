@@ -267,6 +267,29 @@ def run_once(store: SceneStore) -> None:
             else:
                 print(">>> 请重新描述你的场景。")
 
+        elif result.kind == "ambiguous":
+            print("\n>>> 你的描述可能同时指向多个场景，请确认想练哪一个：")
+            for i, cand in enumerate(result.candidates, 1):
+                print(f"      {i}) {cand.name} —— {cand.reason}")
+            choice = read_input(
+                "    输入编号选择场景；或输入「重试」重新描述、「退出」返回主菜单 > "
+            )
+            if choice is None:
+                return
+            c = choice.strip().lower()
+            if c in QUIT_WORDS:
+                return
+            if c in {"重试", "重新描述", "retry", "r"}:
+                print(">>> 好的，请重新描述你的场景。")
+                continue
+            if c.isdigit() and 1 <= int(c) <= len(result.candidates):
+                selected = result.candidates[int(c) - 1]
+                scene = store.get(selected.scene_id)
+                matched_kind = "ambiguous"
+                print(f">>> 好的，开始练习「{selected.name}」。")
+            else:
+                print(">>> 输入无效，请重新描述你的场景。")
+
         elif result.kind == "none":
             print(f"\n>>> 暂不支持「{_shorten(raw)}」这个具体场景。")
             print("    目前可以练习的最接近场景：")

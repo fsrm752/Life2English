@@ -47,6 +47,64 @@ SPELLING_FIXES: dict[str, str] = {
     "univercity": "university",
     "englsih": "english",
     "hellp": "help",
+    # ---- 评审核实 P1-3 点名漏检（`enviroment`/`recieved`/`begining`/`goverment`）----
+    "enviroment": "environment",
+    "recieved": "received",
+    "begining": "beginning",
+    "goverment": "government",
+    # ---- 同类高频错拼补充 ----
+    "wierd": "weird",
+    "acheive": "achieve",
+    "acheivement": "achievement",
+    "neccessary": "necessary",
+    "necesary": "necessary",
+    "accomodation": "accommodation",
+    "arguement": "argument",
+    "comming": "coming",
+    "comitted": "committed",
+    "embarass": "embarrass",
+    "occassion": "occasion",
+    "succesful": "successful",
+    "sucessful": "successful",
+    "writting": "writing",
+    "truely": "truly",
+    "independant": "independent",
+    "existance": "existence",
+    "responsable": "responsible",
+    "probally": "probably",
+    "probaly": "probably",
+    "diffrent": "different",
+    "diffcult": "difficult",
+    "diffculties": "difficulties",
+    "experiance": "experience",
+    "expierence": "experience",
+    "knowlege": "knowledge",
+    "langauge": "language",
+    "resturant": "restaurant",
+    "restaraunt": "restaurant",
+    "vegeterian": "vegetarian",
+    "adress": "address",
+    "assigment": "assignment",
+    "assginment": "assignment",
+    "familar": "familiar",
+    "sucess": "success",
+    "succes": "success",
+    "oppurtunity": "opportunity",
+    "entrepeneur": "entrepreneur",
+    "schedual": "schedule",
+    "shedule": "schedule",
+    "avaliable": "available",
+    "availble": "available",
+    "confortable": "comfortable",
+    "convinient": "convenient",
+    "managment": "management",
+    "enviromental": "environmental",
+    "sincerly": "sincerely",
+    "recomend": "recommend",
+    "reccomend": "recommend",
+    "occure": "occur",
+    "grammer": "grammar",
+    "payed": "paid",
 }
 
 # a/an 特例：元音字母开头但读音为辅音（用 a），或辅音字母开头但读音为元音（用 an）
@@ -56,10 +114,18 @@ _A_AN_EXCEPTIONS_AN = {"hour", "honest", "honor", "honour", "mba", "x-ray"}
 _I_RE = re.compile(r"(?<![A-Za-z])i(?![A-Za-z])")
 _IM_RE = re.compile(r"(?<![A-Za-z])im(?![A-Za-z])")
 _A_VOWEL_RE = re.compile(r"\ba\s+([aeiouAEIOU][a-zA-Z]*)\b")
-_AN_CONSONANT_RE = re.compile(r"\ban\s+([b-df-hj-np-tv-zB-DF-HJ-NP-TV-Z][a-zA-Z]*)\b")
+# 允许连字符：让 "an X-ray" 能完整捕获为 "x-ray"（否则会在 '-' 处截断成 "x"，
+# 使 _A_AN_EXCEPTIONS_AN 中的 "x-ray" 白名单永远匹配不上）。
+_AN_CONSONANT_RE = re.compile(
+    r"\ban\s+([b-df-hj-np-tv-zB-DF-HJ-NP-TV-Z][a-zA-Z\-]*)\b"
+)
+# 反馈粒度硬上限（对齐 SKILL.md §4「每轮只聚焦 1–3 条」）
+MAX_ISSUES_PER_ANSWER = 3
 _SENTENCE_START_LOWER_RE = re.compile(r"^[a-z]")
 _WORD_RE = re.compile(r"[a-zA-Z']+")
 _CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+# 中文标点 / 全角符号：中英混说时需从英文片段中清除，避免污染检查
+_CJK_PUNCT_RE = re.compile(r"[\u3000-\u303f\uff01-\uff5e]")
 
 # 常见中式表达 / 用法建议（trigger, fix, reason）
 USAGE_RULES: list[tuple[re.Pattern, str, str]] = [
@@ -156,12 +222,16 @@ ADVERB_ADJ_RULES: list[tuple[re.Pattern, str, str]] = [
 _GENERIC_VERBS = {
     "like", "love", "enjoy", "prefer", "hate", "dislike", "want", "need",
     "eat", "drink", "play", "study", "learn", "teach", "speak", "watch",
+    # have 后接类指名词同样合法（have class 有课 / have lunch 吃午饭），补入以修误报
+    "have",
 }
 # 上表动词后不应报「缺冠词」的名词（类指用法）
 _GENERIC_NOUNS = {
     "coffee", "tea", "milk", "water", "rice", "food", "bread", "music",
     "basketball", "football", "soccer", "tennis", "chess", "english", "chinese",
     "math", "history", "science", "art", "spanish", "french",
+    # have class / have school 是「有课 / 上学」的固定说法，不算漏冠词
+    "class", "school",
 }
 
 # 时态提示：明确的过去时间标志 + 动词原形（仅提示，不武断判定）
@@ -261,6 +331,40 @@ def has_chinese(text: str) -> bool:
     return bool(_CJK_RE.search(text or ""))
 
 
+def split_mixed(text: str) -> tuple[str, str]:
+    """把中英混说的输入拆成 (英文片段, 中文片段)。
+
+    P2-2：原实现对含中文的输入**直接短路**——只要出现一个汉字就只回一句
+    「用英语回答」，英文部分完全不检查（实测 `I want to 点单` 的英文拼写/语法
+    问题会被整体漏掉）。拆分后可同时给出语言提示与英文部分的检查结果。
+    """
+    src = text or ""
+    chinese = "".join(_CJK_RE.findall(src))
+    english = _CJK_RE.sub(" ", src)
+    english = _CJK_PUNCT_RE.sub(" ", english)
+    english = re.sub(r"\s+", " ", english).strip()
+    return english, chinese
+
+
+def _tidy_issues(issues: list[Issue], limit: int = MAX_ISSUES_PER_ANSWER) -> list[Issue]:
+    """反馈粒度收敛：按 (kind, fix) 去重 → 明确问题优先 → 截断到 limit 条。
+
+    对齐 SKILL.md §4「每轮只聚焦 1–3 条」与反模式 #8「不要一口气罗列所有小错误」，
+    把「粒度克制」从教学指令真正落进本地规则引擎（两条轨道行为一致）。
+    sorted 为稳定排序，同严重度内保持原始检出顺序。
+    """
+    ordered = sorted(issues, key=lambda i: i.severity != "issue")  # issue 优先
+    seen: set[tuple[str, str]] = set()
+    kept: list[Issue] = []
+    for issue in ordered:
+        key = (issue.kind, issue.fix)
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(issue)
+    return kept[:limit]
+
+
 # ---------------------------------------------------------------------------
 # 单条回答检查
 # ---------------------------------------------------------------------------
@@ -273,12 +377,18 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
         return fb
 
     if has_chinese(text):
+        english_part, chinese_part = split_mixed(text)
         fb.issues.append(Issue(
-            kind="语言", quote=text, fix="用英语回答",
-            reason="练习环节建议尽量用英语表达，这样反馈才有效；你可以先套用学过的句式。",
+            kind="语言", quote=(chinese_part or text)[:24], fix="用英语回答",
+            reason="练习环节建议尽量用英语表达，这样反馈才有效；你可以先套用学过的句式。"
+                   "（中文部分已标注，其中的英文片段仍会照常检查）",
             severity="suggestion",
         ))
-        return fb
+        # P2-2：中文不再整体短路——若句中混有英文，继续对英文片段跑全部规则，
+        # 避免「I want to 点单」这类中英混说把英文部分的拼写/语法问题整体漏掉。
+        if not _WORD_RE.search(english_part):
+            return fb
+        text = english_part
 
     scene_id = (scene or {}).get("id", "")
 
@@ -324,9 +434,14 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
         ))
     m = _AN_CONSONANT_RE.search(text)
     if m and m.group(1).lower() not in _A_AN_EXCEPTIONS_AN:
+        # 降级为「建议」：an 后接辅音字母开头的词通常应改 a，但字母缩写按「字母音」
+        # 读、可能确实以元音开头（an FBI / an NBA / an SOS / an HR …），白名单无法穷举。
+        # 按 teaching_guide §4.2「判不准时宁可标为建议，不要标为错误」，此处只给建议。
         fb.issues.append(Issue(
             kind="冠词", quote=m.group(0), fix=f"a {m.group(1)}",
-            reason="辅音音素开头的单词前用 a；an + 辅音开头是常见笔误。",
+            reason="若该词按辅音音素开头则应用 a（如 a book）；但字母缩写按字母音读，"
+                   "可能仍用 an（如 an FBI / an MBA），请按实际读音判断。",
+            severity="suggestion",
         ))
     # a + 「h 开头但读音为元音」的词（honest / hour / honor）应为 an
     m = re.search(r"\ba\s+(honest|hour|honor|honour|heir)\b", text, re.I)
@@ -447,6 +562,9 @@ def evaluate_answer(answer: str, scene: dict | None = None) -> AnswerFeedback:
             reason="课堂上说听不懂时，I didn't quite catch that 比 I don't understand 更自然、更不显得生硬。",
             severity="suggestion",
         ))
+
+    # 7) 粒度收敛：去重 + 明确问题优先 + 每轮最多 3 条
+    fb.issues = _tidy_issues(fb.issues)
 
     return fb
 

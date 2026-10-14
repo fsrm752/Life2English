@@ -6,7 +6,7 @@ description: 生活场景驱动的英语学习技能。当用户想练习某个�
 description_zh: 把一句真实生活/校园场景描述，变成一次完整的英语学习闭环：理解场景、生成学习任务、情景对话、表达反馈、迁移练习与学习总结。支持任意合理场景，不限预设列表。
 description_en: Turn a real-life or campus scenario description into a complete English learning loop: scenario understanding, task generation, role-play dialogue, expression feedback, transfer practice, and a learning summary. Works for any reasonable scenario, not just a preset list.
 category: education
-version: 1.4.1
+version: 1.4.2
 author: Life2English
 ---
 
@@ -111,6 +111,7 @@ author: Life2English
 | 情况 | 处理方式 |
 |---|---|
 | **模糊输入**（如「我想练英语」） | 给出 2–3 个最可能的具体理解，请用户**一句话**选择或补充；不连环追问，也不直接拒绝 |
+| **多场景并列**（轨 B 协议返回 `kind=ambiguous`） | 把 `candidates` 列出的并列场景摆出来，请用户明确选一个再开始；**不要默认取第一个**（那会把另一种意图丢掉） |
 | **超范围需求**（需确认真实退卡政策 / 法律条文） | **明确区分**「英语练习可生成」与「具体政策无法确认」，再给出可完成的近似练习 |
 | **不确定对方惯例** | 降级为**通用表达清单** + 「实际对话可能这样发展」，不编造机构规定 |
 | **用户不耐烦 / 想跳过** | 允许跳过或缩短，语气放轻，不硬推流程 |

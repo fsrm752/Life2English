@@ -49,15 +49,18 @@
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `kind` | string | `strong` 完全匹配 / `weak` 部分匹配 / `none` 无匹配 / `empty` 空输入 / `invalid` 无法理解 |
-| `scene_id` | string\|null | 命中场景 id（none/empty/invalid 时为 null） |
-| `scene_name` | string\|null | 命中场景名 |
+| `kind` | string | `strong` 完全匹配 / `weak` 部分匹配 / `ambiguous` 多场景并列 / `none` 无匹配 / `empty` 空输入 / `invalid` 无法理解 |
+| `scene_id` | string\|null | 命中场景 id（ambiguous/none/empty/invalid 时为 null） |
+| `scene_name` | string\|null | 命中场景名（ambiguous/none/empty/invalid 时为 null） |
 | `matched_keywords` | string[] | 命中的关键词 |
-| `candidates[]` | object[] | `kind=none` 时的推荐列表，含 `scene_id` / `name` / `reason` |
+| `ambiguous` | string[] | `kind=ambiguous` 时并列的场景 id 列表（保持模板定义顺序） |
+| `candidates[]` | object[] | `ambiguous` / `none` 时的候选列表，含 `scene_id` / `name` / `reason` |
 | `message` | string | 提示信息 |
 
 **调用方处理约定**：`strong` 直接进入学习；`weak` 必须先向用户确认再复用模板；
-`none` 展示 `candidates` 让用户选择或重述；`empty` / `invalid` 提示后允许重试。
+`ambiguous` 展示 `candidates`（`ambiguous` 字段给出并列场景 id），请用户明确选择一个再进入学习，
+**不要替用户默认取第一个**；`none` 展示 `candidates` 让用户选择或重述；
+`empty` / `invalid` 提示后允许重试。
 
 ## 3. action: task
 
@@ -81,25 +84,42 @@
 
 ## 4. action: interact
 
-情境互动的单步推进（无状态：每次请求携带该轮输入）。
+情境互动的单步推进（**无状态**：服务端不保存会话，多轮状态由调用方持有）。
 
 - 输入（取开场语）：`{"action": "interact", "scene_id": "coffee_ordering"}`
-- 输入（回答一轮）：`{"action": "interact", "scene_id": "coffee_ordering", "user_input": "Hi, could I get a latte?"}`
+- 输入（回答第 N 轮）：`{"action": "interact", "scene_id": "coffee_ordering",
+  "answers_taken": ["<第 1 轮回答>", "…", "<第 N-1 轮回答>"], "user_input": "<第 N 轮回答>"}`
+
+`answers_taken` 是**此前已完成的回答列表**（不含本轮）。服务端先重放该历史把对话还原到
+正确轮次，再记录 `user_input` 并给出下一轮问题——因此**每次请求都必须带上完整历史**。
+
+两轮调用示例（同一场景连续两次请求）：
+
+```jsonc
+// 第 1 轮：无历史，user_input 即本轮回答
+{ "action": "interact", "scene_id": "coffee_ordering",
+  "answers_taken": [], "user_input": "Hi, could I get a latte, please?" }
+// 第 2 轮：把第 1 轮回答放入 answers_taken
+{ "action": "interact", "scene_id": "coffee_ordering",
+  "answers_taken": ["Hi, could I get a latte, please?"], "user_input": "Medium, please." }
+```
 
 响应载荷：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `role` | string | 对话对象（中文角色名） |
-| `opening` | string | 开场白（仅首次请求） |
-| `ack` | string | 对用户回答的呼应语 |
+| `opening` | string | 开场白（仅首次请求，无 `answers_taken` 且无 `user_input` 时） |
+| `ack` | string | 对用户回答的呼应语（作答时为字符串，取开场/恢复时为 null） |
 | `prompt` | string\|null | 下一轮问题；为 null 表示互动结束 |
-| `hint` | string | 回答提示 |
+| `hint` | string\|null | 回答提示 |
 | `closing` | string | 收场语（结束时） |
 | `done` | boolean | 是否已结束 |
-| `rounds` | integer | 已完成轮数 |
+| `rounds` | integer | 已完成轮数（含 `answers_taken` 重放的轮数） |
 
-> 提示：多轮交互的连贯状态由调用方持有；如需一次性跑完整场，用 `run`。
+> 提示：`answers_taken` 为空且 `user_input` 为空 → 返回开场白；
+> `answers_taken` 非空但 `user_input` 为空 → 返回当前待作答的问题（用于恢复现场）。
+> 如需一次性跑完整场，用 `run`。
 
 ## 5. action: feedback
 
@@ -155,7 +175,7 @@
 
 ## 9. action: version
 
-返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.4.1"}`。
+返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.4.2"}`。
 
 ## 错误处理
 

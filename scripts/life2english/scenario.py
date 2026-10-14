@@ -5,15 +5,18 @@
 - 强匹配（最高分 >= 3）：直接进入学习任务；
 - 弱匹配（0 < 最高分 < 3，即只命中扩展词）：必须经用户确认后才复用模板，
   避免「仅凭关键词相似硬套模板」；
+- 并列歧义（多个场景同分居首）：显式返回 ambiguous 与并列场景列表，交由用户选择，
+  **不再静默取 JSON 顺序最靠前的那个**（那会把另一种意图无声丢弃）；
 - 无匹配（0 分）：明确告知暂不支持，推荐最接近的 2-3 个可用场景；
 - 空输入 / 无法理解的输入：返回明确的提示类型，由调用方引导用户重试。
 
 匹配结果类型（RecognitionResult.kind）：
-    strong  — 完全匹配
-    weak    — 部分匹配（待用户确认）
-    none    — 无适用模板（附带推荐）
-    empty   — 空输入
-    invalid — 无法理解的输入
+    strong    — 完全匹配
+    weak      — 部分匹配（待用户确认）
+    ambiguous — 多个场景并列（需用户明确选择，不静默取其一）
+    none      — 无适用模板（附带推荐）
+    empty     — 空输入
+    invalid   — 无法理解的输入
 """
 
 from __future__ import annotations
@@ -53,11 +56,12 @@ class Candidate:
 class RecognitionResult:
     """场景识别结果。"""
 
-    kind: str  # strong | weak | none | empty | invalid
+    kind: str  # strong | weak | ambiguous | none | empty | invalid
     scene_id: str | None = None
     scene_name: str | None = None
     matched_keywords: list[str] = field(default_factory=list)
     candidates: list[Candidate] = field(default_factory=list)
+    ambiguous: list[str] = field(default_factory=list)  # kind=ambiguous 时并列的场景 id
     message: str = ""
 
 
@@ -131,34 +135,42 @@ def recognize(
         return RecognitionResult(kind="invalid", message="无法理解该输入，请换一种描述方式。")
 
     raw_low = raw.lower()
-    best_score = 0
-    best_scene: dict | None = None
-    best_hits: list[str] = []
-    for scene in scenes:
-        score, hits = _score_scene(raw_low, scene)
-        if score > best_score:
-            best_score = score
-            best_scene = scene
-            best_hits = hits
+    scored = [_score_scene(raw_low, scene) for scene in scenes]
+    best_score = max((score for score, _ in scored), default=0)
 
-    if best_scene is not None and best_score >= STRONG_THRESHOLD:
+    if best_score <= 0:
         return RecognitionResult(
-            kind="strong",
-            scene_id=best_scene["id"],
-            scene_name=best_scene["name"],
-            matched_keywords=best_hits,
+            kind="none",
+            candidates=recommend(raw, scenes),
+            message="暂不支持该具体场景。",
         )
 
-    if best_scene is not None and best_score > 0:
+    # 保持模板定义顺序（scenes 顺序），确保结果稳定、可复现
+    top = [(scene, hits) for scene, (score, hits) in zip(scenes, scored)
+           if score == best_score]
+
+    # 并列歧义：多个场景同分居首。显式提示，交由调用方让用户选择，
+    # 避免「取 JSON 顺序靠前者」把另一种意图静默丢弃。
+    if len(top) > 1:
         return RecognitionResult(
-            kind="weak",
-            scene_id=best_scene["id"],
-            scene_name=best_scene["name"],
-            matched_keywords=best_hits,
+            kind="ambiguous",
+            ambiguous=[scene["id"] for scene, _ in top],
+            candidates=[
+                Candidate(
+                    scene_id=scene["id"],
+                    name=scene["name"],
+                    reason=f"与你的描述同样吻合（并列得分 {best_score}）",
+                )
+                for scene, _ in top
+            ],
+            matched_keywords=[kw for _, hits in top for kw in hits],
+            message="你的描述可能同时指向多个场景，请确认想练习哪一个。",
         )
 
+    best_scene, best_hits = top[0]
     return RecognitionResult(
-        kind="none",
-        candidates=recommend(raw, scenes),
-        message="暂不支持该具体场景。",
+        kind="strong" if best_score >= STRONG_THRESHOLD else "weak",
+        scene_id=best_scene["id"],
+        scene_name=best_scene["name"],
+        matched_keywords=best_hits,
     )

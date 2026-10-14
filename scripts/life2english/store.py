@@ -1,6 +1,11 @@
-"""模板仓库：加载与管理场景模板数据（data/scenarios.json）。
+"""模板仓库：加载与管理场景模板数据（scripts/data/scenarios.json）。
 
 模板数据与业务逻辑分离：新增/修改场景只需编辑 JSON 数据文件，不改代码。
+
+数据文件**只有一份**（单一数据源，杜绝双写漂移）：
+    scripts/data/scenarios.json      # store.py 位于 scripts/life2english/ → ../data/
+开发仓库布局下的兼容导入（根目录 `life2english/` 包）转发到同一份实现，
+读到的也是这一个文件。
 """
 
 from __future__ import annotations
@@ -8,15 +13,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-# 数据文件查找顺序（兼容两种布局）：
-#   1) scripts/data/scenarios.json         —— 技能包内（scripts/life2english/ → ../data/）
-#   2) <项目根>/data/scenarios.json         —— 开发仓库布局（life2english/ → ../data/）
 _HERE = Path(__file__).resolve().parent
-_CANDIDATES = [
-    _HERE.parent / "data" / "scenarios.json",          # scripts/data/
-    _HERE.parent.parent / "data" / "scenarios.json",   # 项目根/data/
-]
-DEFAULT_DATA_FILE = next((p for p in _CANDIDATES if p.exists()), _CANDIDATES[0])
+DEFAULT_DATA_FILE = _HERE.parent / "data" / "scenarios.json"   # scripts/data/
 
 
 class SceneStore:

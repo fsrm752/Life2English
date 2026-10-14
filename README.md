@@ -105,15 +105,20 @@ Life2English/
 │   └── scenarios.md          #   参考示例场景库总览
 ├── templates/                # 模板文件
 │   └── learning_task.md      #   学习任务输出结构参考
-├── life2english/             # 开发仓库兼容包（转发到 scripts/life2english）
-└── data/scenarios.json       # 场景数据（开发仓库布局副本）
+└── life2english/             # 开发仓库兼容包（转发到 scripts/life2english）
 ```
+
+> **关于本仓库形态**：上表列出的即**技能本体**。开发机上还另有 `tests/`（自动化测试）、
+> `docs/`（过程文档）、`records/`（运行记录）、`DESIGN.md` 等**开发件**，
+> 它们**不参与技能包分发**，也不影响技能运行。
+> 场景数据**只有一份**：`scripts/data/scenarios.json`（见下方「设计要点」）。
 
 ## 设计要点
 
 - **通用教学流程**：场景理解 / 任务生成 / 角色扮演 / 反馈 / 迁移 / 总结六段流程由 `SKILL.md` 定义，
   对任意场景通用，不为单个场景写完整程序；
-- **示例与逻辑分离**：参考场景数据集中在 `data/scenarios.json`，新增示例无需改代码；
+- **示例与逻辑分离**：参考场景数据集中在 `scripts/data/scenarios.json`（**唯一数据源**），
+  新增示例无需改代码；
 - **本地反馈引擎**：覆盖拼写、大小写、a/an、主谓一致、名词数、词性、时态提示、常见中式表达等规则，
   问题与建议**分级展示**，并带误报防护；
 - **零依赖运行**：本地脚本仅使用 Python 标准库，无需网络、无需密钥。
@@ -132,9 +137,30 @@ Life2English/
 
 ## 质量与验证
 
-项目开发过程中建有完整的自动化测试体系：场景识别五类输入、协议层 action、
-反馈规则引擎、异常与边界稳定性、文档与代码一致性、技能包结构合规、端到端演示等，
-发布前全部通过。（测试代码与运行记录保留在开发工作区内。）
+开发机上建有完整的自动化测试体系，共 **9 个套件**，一条命令跑完：
+
+```bash
+python -X utf8 tests/run_all.py          # 全部套件
+python -X utf8 tests/run_all.py --fast   # 跳过端到端演示（较慢）
+```
+
+| # | 套件 | 测什么 | 依赖 |
+|---|---|---|---|
+| 1 | `tests/test_inputs.py` | 场景识别五类输入 + 反馈引擎断言（unittest） | 技能本体 |
+| 2 | `tests/test_skill_api.py` | JSON 协议层 9 个 action 全量 | 技能本体 |
+| 3 | `tests/test_feedback_rules.py` | 表达反馈规则引擎（拼写 / 用法 / 中式表达等） | 技能本体 |
+| 4 | `tests/test_stability.py` | 异常与边界稳定性（含随机模糊输入） | 技能本体 |
+| 5 | `tests/check_skill_instructions.py` | `SKILL.md` 指令层检查 | 技能本体 |
+| 6 | `tests/run_input_tests.py` | 五类输入程序级实测（真实运行 CLI） | 开发工作区（写 `records/`） |
+| 7 | `tests/check_doc_consistency.py` | 文档—代码一致性（计数 / 清单 / 单一数据源） | 开发工作区（读 `DESIGN.md`、`docs/`） |
+| 8 | `tests/check_skill_package.py` | 技能包结构合规 + 打包 | 开发工作区（写 `dist/`） |
+| 9 | `demo/demo_session.py` | 端到端连续演示 | 开发工作区（写 `records/`） |
+
+> **发布口径**：`tests/`、`demo/`、`docs/`、`records/` 与 `DESIGN.md` 均为**开发件**，
+> **不随技能包分发**，故上表套件运行于**开发工作区**，不是技能运行的前置条件。
+> 其中第 1–5 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
+> 第 6–9 个套件需要开发工作区的输出目录或过程文档。
+> 所有结论均来自实际运行，能力边界如实声明。
 
 ## 安装与打包
 

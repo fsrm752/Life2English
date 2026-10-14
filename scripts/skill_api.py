@@ -42,11 +42,12 @@ from life2english import transfer as transfer_mod          # noqa: E402
 from life2english.session import LearningSession           # noqa: E402
 from life2english.store import SceneStore                  # noqa: E402
 
-SKILL_VERSION = "1.4.1"
+SKILL_VERSION = "1.4.2"
 
 MATCH_LABELS = {
     "strong": "完全匹配",
     "weak": "部分匹配（已确认）",
+    "ambiguous": "并列歧义（已确认）",
     "picked": "兜底推荐选择",
 }
 
@@ -134,6 +135,7 @@ def _act_recognize(store: SceneStore, req: dict) -> dict:
         "scene_id": result.scene_id,
         "scene_name": result.scene_name,
         "matched_keywords": result.matched_keywords,
+        "ambiguous": result.ambiguous,
         "candidates": [
             {"scene_id": c.scene_id, "name": c.name, "reason": c.reason}
             for c in result.candidates
@@ -149,39 +151,52 @@ def _act_task(store: SceneStore, req: dict) -> dict:
 
 
 def _act_interact(store: SceneStore, req: dict) -> dict:
-    """情境互动：无 user_input → 返回开场；有 → 记录回答并给下一轮问题。"""
+    """情境互动：保持无状态，由调用方通过 `answers_taken` 回传历史回答。
+
+    - 无 `answers_taken` 且无 `user_input`：返回开场白（第一次调用）；
+    - 带 `answers_taken`（此前已完成的回答列表）+ `user_input`：先重放历史把对话
+      还原到正确轮次，再记录本轮回答并给出下一轮问题；
+    - 带 `answers_taken` 但不带 `user_input`：返回当前待作答的问题（用于恢复现场）。
+    """
+
+    def _payload(step: dict | None, ack: str | None = None) -> dict:
+        base = {"role": dlg.role_zh, "ack": ack, "rounds": dlg.rounds}
+        if step is None:
+            return {**base, "prompt": None, "hint": None,
+                    "closing": dlg.closing, "done": True}
+        return {**base, "prompt": step["prompt"], "hint": step.get("hint", ""),
+                "done": False}
+
     scene = _resolve_scene(store, req)
     dlg = LearningSession(scene).dialogue
 
+    history = _as_text_list(req.get("answers_taken"))
+    if history is None:
+        raise ValueError("answers_taken 必须是字符串数组，例如 [\"Hi, could I get a latte?\"]")
+    for prev in history:
+        dlg.record_answer(prev)
+        dlg.next_step()
+
     user_input = _as_text(req.get("user_input")).strip()
     if not user_input:
-        return {
-            "role": dlg.role_zh,
-            "opening": dlg.opening,
-            "done": False,
-        }
+        if not history:
+            return {
+                "role": dlg.role_zh,
+                "opening": dlg.opening,
+                "done": False,
+                "rounds": dlg.rounds,
+            }
+        # 已重放历史但本轮未作答 → 返回当前待回答的问题
+        step = dlg.current_step()
+        if step is None:
+            dlg.end()
+        return _payload(step)
 
     ack = dlg.record_answer(user_input)
     step = dlg.next_step()
     if step is None:
         dlg.end()
-        return {
-            "role": dlg.role_zh,
-            "ack": ack,
-            "prompt": None,
-            "hint": None,
-            "closing": dlg.closing,
-            "done": True,
-            "rounds": dlg.rounds,
-        }
-    return {
-        "role": dlg.role_zh,
-        "ack": ack,
-        "prompt": step["prompt"],
-        "hint": step.get("hint", ""),
-        "done": False,
-        "rounds": dlg.rounds,
-    }
+    return _payload(step, ack=ack)
 
 
 def _act_feedback(store: SceneStore, req: dict) -> dict:
