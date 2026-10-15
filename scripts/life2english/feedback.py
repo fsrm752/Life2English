@@ -108,7 +108,9 @@ SPELLING_FIXES: dict[str, str] = {
 }
 
 # a/an 特例：元音字母开头但读音为辅音（用 a），或辅音字母开头但读音为元音（用 an）
-_A_AN_EXCEPTIONS_A = {"university", "united", "unique", "useful", "user", "usual", "european", "one", "once"}
+# （阶段 C 补入）used 读 /juːzd/（或 /juːst/），以辅音音素 /j/ 开头：a used car 正确，
+# 不应报「an used」——由独立语料 ctx_18 暴露。
+_A_AN_EXCEPTIONS_A = {"university", "united", "unique", "useful", "user", "usual", "european", "one", "once", "used"}
 _A_AN_EXCEPTIONS_AN = {"hour", "honest", "honor", "honour", "mba", "x-ray"}
 
 _I_RE = re.compile(r"(?<![A-Za-z])i(?![A-Za-z])")
@@ -153,8 +155,8 @@ USAGE_RULES: list[tuple[re.Pattern, str, str]] = [
      "「下下周」说 the week after next，不说 next next week。"),
     (re.compile(r"\bsuggest me\b", re.I), "suggest something to me / give me a suggestion",
      "suggest 不直接接人：用 suggest sth to me 或 recommend。"),
-    (re.compile(r"\bi very\b", re.I), "I'm very / I really",
-     "I very + 形容词 语序错误：说 I'm very happy / I really like。"),
+    (re.compile(r"\bi very\b(?!\s+much\b)", re.I), "I'm very / I really",
+     "I very + 形容词 语序错误：说 I'm very happy / I really like。（I very much + 动词是正确结构，不误报）"),
 ]
 
 # 常见中式表达（针对中文思维直译，给出地道说法）
