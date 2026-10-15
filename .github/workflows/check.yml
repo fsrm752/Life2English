@@ -1,0 +1,29 @@
+name: 发布侧基础检查
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装 YAML 校验辅助（仅 CI 使用，非技能运行时依赖）
+        continue-on-error: true
+        run: python -m pip install --quiet pyyaml
+
+      - name: 发布侧基础自检（结构 / 数据 / 边界声明 / 协议冒烟）
+        run: python .github/checks/package_check.py

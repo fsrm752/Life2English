@@ -44,7 +44,7 @@
 ### 方式一：交互式学习（命令行）
 
 ```bash
-python scripts/life2english_cli.py     # 等价入口：python main.py
+python scripts/life2english_cli.py     # 源码仓库另有等价入口：python main.py
 ```
 
 操作流程：主菜单输入 `1` → 描述场景（如 `我想在咖啡店点单`）→ 按提示完成
@@ -108,9 +108,10 @@ Life2English/
 └── life2english/             # 开发仓库兼容包（转发到 scripts/life2english）
 ```
 
-> **关于本仓库形态**：上表列出的即**技能本体**。开发机上还另有 `tests/`（自动化测试）、
-> `docs/`（过程文档）、`records/`（运行记录）、`DESIGN.md` 等**开发件**，
-> 它们**不参与技能包分发**，也不影响技能运行。
+> **关于本仓库形态**：上表列出的即**技能本体**。开发机上还另有 `tests/`（自动化测试与评估集）、
+> `demo/`（端到端演示）、`docs/`（过程文档）、`records/`（运行记录）、`artifacts/`（作品素材）、
+> `dist/`（打包产物）、`DESIGN.md`、`DEVELOPMENT_PLAN.md` 等**开发件**，
+> 它们**不参与技能包分发**，也不影响技能运行；`.github/` 为发布仓库的 CI 配置，同样不进技能包。
 > 场景数据**只有一份**：`scripts/data/scenarios.json`（见下方「设计要点」）。
 
 ## 设计要点
@@ -140,7 +141,7 @@ Life2English/
 
 ## 质量与验证
 
-开发机上建有完整的自动化测试体系，共 **11 个套件**。
+开发机上建有完整的自动化测试体系，共 **12 个套件**。
 
 > ⚠️ **以下命令运行于开发工作区**：本发布仓库**不含 `tests/`**，克隆后无法直接执行。
 > 测试代码与运行记录保留在开发工作区内，不随技能包分发。
@@ -163,18 +164,30 @@ python -X utf8 tests/run_all.py --fast   # 跳过端到端演示（较慢）
 | 9 | `tests/check_doc_consistency.py` | 文档—代码一致性（计数 / 清单 / 单一数据源） | 开发工作区（读 `DESIGN.md`、`docs/`） |
 | 10 | `tests/check_skill_package.py` | 技能包结构合规 + 打包 | 开发工作区（写 `dist/`） |
 | 11 | `demo/demo_session.py` | 端到端连续演示 | 开发工作区（写 `records/`） |
+| 12 | `tests/check_python_syntax.py` | 全部 Python 文件语法检查（compile，不执行） | 技能本体 |
 
 > **发布口径**：`tests/`、`demo/`、`docs/`、`records/` 与 `DESIGN.md` 均为**开发件**，
 > **不随技能包分发**，故上表套件运行于**开发工作区**，不是技能运行的前置条件。
-> 上表标注「技能本体」的 6 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
+> 上表标注「技能本体」的 7 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
 > 标注「开发工作区」的 5 个套件需要开发工作区的额外资源（测试语料 / 输出目录 / 过程文档）。
 > 所有结论均来自实际运行，能力边界如实声明。
 
+**轨道 A 教学评估集**（人工执行，非自动化）：`tests/eval_trackA_cases.md` —— 10 个固定案例，
+覆盖快速模式、未预设场景、三类反馈、水平校准、用户自主权与能力边界；需在模型环境中逐案运行并记录原始输出，
+**未实际运行的案例不得标记为通过**（该评估集与轨道 B 的自动化结果互不替代）。
+
+**持续集成（发布仓库侧）**：`.github/workflows/check.yml` 在 push / PR 时对发布面跑基础自检
+（`.github/checks/package_check.py`：frontmatter 解析、场景数据结构、@ 引用、协议 action 对齐、
+能力边界声明、Python 编译、`skill_api.py` 协议冒烟）。该自检**零运行时依赖**——
+PyYAML 仅 CI 校验用，缺失时自动退回内置校验。完整回归仍以开发工作区的 12 个套件为准，
+CI 只覆盖发布面关键项。
+
 ## 安装与打包
 
-本仓库目录结构即技能包结构：`SKILL.md` 位于技能目录根，子资源含
-`references/` + `scripts/` + `templates/`。
+技能包结构：`SKILL.md`（技能目录根）+ `README.md` + `references/` + `scripts/` + `templates/`；
+`main.py` 与 `life2english/` 是源码仓库侧的兼容层（转发到 `scripts/`），**不参与技能包分发**。
 
-- **打包**：将本仓库内容打包为 zip，顶层目录名使用 `life2english/`，即可作为技能包分发；
+- **打包**：将技能本体（上列 5 项）打包为 zip，顶层目录名使用 `life2english/`，即可作为技能包分发；
+  开发工作区可用 `python tests/check_skill_package.py` 生成并校验 `dist/life2english.zip`；
 - **安装**：在 WorkBuddy 左侧菜单【专家·技能·连接器】→【技能】→【添加技能】中导入该 zip，
   或解压到用户技能目录。

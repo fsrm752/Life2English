@@ -15,7 +15,7 @@
 
 支持的动作（action）：
     list_scenes     列出全部支持的场景（含适用主题）
-    recognize       场景识别（strong/weak/none/empty/invalid）
+    recognize       场景识别（strong/weak/ambiguous/none/empty/invalid）
     task            生成学习任务（目标 + 实用表达 + 互动任务）
     interact        情境互动（返回开场问题；可用 user_input 逐步推进）
     feedback        表达反馈（传入回答列表，返回逐条反馈 + 局限声明）
