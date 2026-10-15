@@ -6,7 +6,7 @@ description: 生活场景驱动的英语学习技能。当用户想练习某个�
 description_zh: 把一句真实生活/校园场景描述，变成一次完整的英语学习闭环：理解场景、生成学习任务、情景对话、表达反馈、迁移练习与学习总结。支持任意合理场景，不限预设列表。
 description_en: Turn a real-life or campus scenario description into a complete English learning loop: scenario understanding, task generation, role-play dialogue, expression feedback, transfer practice, and a learning summary. Works for any reasonable scenario, not just a preset list.
 category: education
-version: 1.4.3
+version: 1.5.0
 author: Life2English
 ---
 
