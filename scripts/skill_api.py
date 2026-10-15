@@ -14,16 +14,19 @@
     resp = handle({"action": "task", "scene_id": "coffee_ordering"})
 
 支持的动作（action）：
-    list_scenes   列出全部支持的场景（含适用主题）
-    recognize     场景识别（strong/weak/none/empty/invalid）
-    task          生成学习任务（目标 + 实用表达 + 互动任务）
-    interact      情境互动（返回开场问题；可用 user_input 逐步推进）
-    feedback      表达反馈（传入回答列表，返回逐条反馈 + 局限声明）
-    transfer      迁移练习（生成新场景任务 / 校验一次尝试）
-    summary       生成学习总结（传入一次会话的完整记录）
-    run           一次性完成整条闭环（非交互，适合自动化演示与验收）
+    list_scenes     列出全部支持的场景（含适用主题）
+    recognize       场景识别（strong/weak/none/empty/invalid）
+    task            生成学习任务（目标 + 实用表达 + 互动任务）
+    interact        情境互动（返回开场问题；可用 user_input 逐步推进）
+    feedback        表达反馈（传入回答列表，返回逐条反馈 + 局限声明）
+    transfer        迁移练习（生成新场景任务 / 校验一次尝试）
+    summary         生成学习总结（传入一次会话的完整记录）
+    run             一次性完成整条闭环（非交互，适合自动化演示与验收）
+    profile_export  合并本场会话说学习者档案并导出（纯 JSON，由调用方保存）
+    profile_import  校验并读入外部学习者档案（不保存、不合并）
 
 所有输出均为 UTF-8 JSON；顶层字段 ok 表示是否成功，失败时 error 给出原因。
+档案相关：技能**不做任何自动持久化**——档案为纯 JSON 结构，保存 / 传递由调用方负责。
 """
 
 from __future__ import annotations
@@ -35,6 +38,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from life2english import feedback as feedback_mod          # noqa: E402
+from life2english import profile as profile_mod            # noqa: E402
 from life2english import scenario as scenario_mod          # noqa: E402
 from life2english import summary as summary_mod            # noqa: E402
 from life2english import taskgen                           # noqa: E402
@@ -318,6 +322,87 @@ def _act_run(store: SceneStore, req: dict) -> dict:
     }
 
 
+def _act_profile_export(store: SceneStore, req: dict) -> dict:
+    """合并本场会话为学习者档案并导出。
+
+    - 传入 `profile`（可选，上次导出的档案 JSON）→ 合并本场后返回**新档案**；
+      省略则从空档案开始。同一 `session_id` 再次合并会替换旧记录（幂等）。
+    - 档案为纯 JSON 结构：本技能**不做任何持久化**，请调用方自行保存。
+    - `answers` / `transfer_attempt` 仅用于「使用检测」，不会写入档案（数据最小化）。
+    """
+    scene = _resolve_scene(store, req)
+
+    answers = _as_text_list(req.get("answers"))
+    if answers is None:
+        raise ValueError("answers 必须是字符串数组，例如 [\"Hi, could I get a latte, please?\"]")
+
+    report = feedback_mod.evaluate_answers(scene, answers)
+    issues = [_issue_to_dict(i) for fb in report.answers for i in fb.issues]
+
+    transfer_attempt = _as_text(req.get("transfer_attempt"))
+    transfer_info = {"attempted": False, "reused_keywords": []}
+    if transfer_attempt.strip():
+        tr = transfer_mod.check_attempt(scene, transfer_attempt)
+        transfer_info = {"attempted": True, "reused_keywords": tr.reused_keywords}
+
+    task = taskgen.build_task(scene)
+    session = {
+        "session_id": req.get("session_id"),
+        "date": req.get("date"),
+        "scene_id": scene["id"],
+        "scene_name": scene["name"],
+        "matched_kind": _as_text(req.get("matched_kind")) or "strong",
+        "rounds": len(answers),
+        "expressions": [e.en for e in task.expressions],
+        "issues": issues,
+        "transfer": transfer_info,
+        # 仅用于本次「使用检测」，不会写入档案
+        "answers": answers,
+        "transfer_attempt": transfer_attempt,
+    }
+
+    base = req.get("profile")
+    if base is not None and not isinstance(base, dict):
+        raise ValueError("profile 必须是 JSON 对象（或省略以新建档案）")
+    try:
+        profile = profile_mod.apply_session(base, session)
+    except ValueError as exc:
+        raise ValueError(f"档案合并失败：{exc}")
+
+    return {
+        "profile": profile,
+        "summary": profile_mod.summarize(profile),
+        "note": "档案为纯 JSON 结构，请由调用方自行保存（本技能不做自动持久化）。",
+    }
+
+
+def _act_profile_import(store: SceneStore, req: dict) -> dict:
+    """校验并读入外部学习者档案（不合并、不保存）。
+
+    - 输入 `profile_text`（JSON 字符串）或 `profile`（JSON 对象）二者之一；
+    - 返回 `import_ok`：false 时 `errors` 给出原因（校验结果，非系统错误）。
+    """
+    text = req.get("profile_text")
+    obj = req.get("profile")
+    if text is not None:
+        profile, errors = profile_mod.import_text(_as_text(text))
+    elif obj is not None:
+        ok, errors = profile_mod.validate_profile(obj)
+        profile = profile_mod.normalize_profile(obj) if ok else None
+    else:
+        raise ValueError("请提供 profile_text（JSON 字符串）或 profile（JSON 对象）")
+
+    if profile is None:
+        return {"import_ok": False, "errors": errors}
+
+    return {
+        "import_ok": True,
+        "profile": profile,
+        "summary": profile_mod.summarize(profile),
+        "note": "档案已通过校验并规范化；如需继续更新，请把本 profile 传回 profile_export。",
+    }
+
+
 # ---------------------------------------------------------------------------
 # 分发
 # ---------------------------------------------------------------------------
@@ -353,6 +438,8 @@ ACTIONS = {
     "transfer": _act_transfer,
     "summary": _act_summary,
     "run": _act_run,
+    "profile_export": _act_profile_export,
+    "profile_import": _act_profile_import,
 }
 
 

@@ -156,6 +156,16 @@ author: Life2English
 
 > 收尾不等于必须完整总结：用户想走时，**简短**优先。
 
+### 9. 跨会话学习记录（可选）
+
+**本技能不自动保存任何数据。** 用户想长期跟踪学习情况时，按下述方式提供「可带走」的记录：
+
+- **征求同意**：会话结束时**可以**一句话询问是否需要一份「学习记录 JSON」，不反复推销；
+- **轨 A（模型环境）**：用户提供过历史档案时，结合其中的薄弱点调整复习重点；需要留档时输出**可复制的档案 JSON 块**，并说明「保存位置由你决定」；
+- **轨 B（本地脚本）**：`profile_export` 合并本场会话并导出档案，`profile_import` 校验读入既有档案（见 [@references/protocol.md](references/protocol.md)）；
+- **隐私最小化**：档案只含学习表现数据（表达清单、问题类型与片段、复用记录），**不保存对话原文**；用户可随时删除；
+- **严禁虚构保存**：除非用户明确看到保存位置或已自行复制留档，**不得声称「已保存 / 已记住 / 下次自动带你复习」**。
+
 ## 输出结构（按场景裁剪，但保留完整闭环）
 
 不固定栏目数量。一次完整练习应当覆盖这个闭环：
@@ -185,7 +195,7 @@ author: Life2English
    —— **仅用于本地测试/调试，非最终产品**。
 2. **非交互式协议**：JSON 进 JSON 出，字段级说明见 [@references/protocol.md](references/protocol.md)。
 
-支持的 action：`list_scenes` / `recognize` / `task` / `interact` / `feedback` / `transfer` / `summary` / `run` / `version`。
+支持的 action：`list_scenes` / `recognize` / `task` / `interact` / `feedback` / `transfer` / `summary` / `run` / `profile_export` / `profile_import` / `version`。
 
 ```bash
 echo '{"action":"recognize","input":"我想在咖啡店点单"}' | python scripts/skill_api.py
@@ -198,6 +208,7 @@ echo '{"action":"run","scene_id":"campus_canteen","answers":["Could I get a set 
 >   （问题与建议分级展示）；**语义通顺度、复杂语法、地道性无法可靠判断**，不得夸大；
 > - 情境应答为**模板化**，不是真实 AI 对话；
 > - 仅支持下文 11 个预设场景，其余走「先声明局限、再给近似练习」的兜底；
+> - 支持导出 / 导入学习档案（`profile_export` / `profile_import`，纯 JSON 由调用方保存），**不做自动持久化**；
 > - 已为将来接入真实模型预留接口 `scripts/life2english/model_api.py`（默认纯本地）。
 
 ## 参考示例场景（11 个 · 质量基准）
@@ -228,6 +239,7 @@ echo '{"action":"run","scene_id":"campus_canteen","answers":["Could I get a set 
   涉及**真实业务政策 / 机构规定 / 价格 / 法律**等事实时，以官方信息为准，不得凭模型想象给出确定性答案；
 - **轨道 B（本地脚本）**：仅 11 个预设场景 + 有限规则引擎，能力如上文所述；
 - **不虚构**：用户数量、准确率、测试结果、模型能力等，一律不得编造；
+- **学习记录不持久化**：技能不自动保存任何数据；档案能力以「用户自行保存 / 传递的 JSON」为边界，**不得虚构保存成功**；
 - 当需求**超出能力范围**时（例如用户要求确认真实的退卡政策），应**明确区分**：
   「英语沟通练习可以生成」与「实际业务政策无法确认」，并给出可完成的近似练习。
 

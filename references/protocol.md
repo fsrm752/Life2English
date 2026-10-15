@@ -187,6 +187,60 @@
 
 返回技能版本：`{"action": "version"}` → `{"ok": true, "skill": "life2english", "version": "1.4.3"}`。
 
+## 10. action: profile_export
+
+合并本场会话为学习者档案并导出（**纯 JSON，由调用方保存；技能不做任何持久化**）。
+
+- 输入：
+
+```json
+{
+  "action": "profile_export",
+  "scene_id": "coffee_ordering",
+  "session_id": "s1",
+  "date": "2026-10-15",
+  "matched_kind": "strong",
+  "answers": ["Hi, could I get a latte, please?"],
+  "transfer_attempt": "Could I get a bubble tea, please?",
+  "profile": null
+}
+```
+
+- `profile`（可选）：上一次导出的档案 JSON；省略则新建档案。
+  同一 `session_id` 再次合并会**替换**旧记录（幂等，不会重复计数）。
+- `session_id` / `date`（可选）：由调用方提供；不提供时 `date` 为 `null`（**不虚构时间**）。
+- `answers` / `transfer_attempt` 仅用于「使用检测」，**不会写入档案**（数据最小化）。
+
+响应载荷：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `profile` | object | 更新后的完整档案（结构见下「档案 schema」） |
+| `summary` | object | 摘要：会话数 / 表达数 / 三态分布 / 高频错误 / 场景列表 / 最近会话 |
+| `note` | string | 保存责任说明（技能不做自动持久化，请调用方保存） |
+
+## 11. action: profile_import
+
+校验并读入外部档案（不合并、不保存）。
+
+- 输入（二选一）：
+  - `{"action": "profile_import", "profile_text": "<档案 JSON 字符串>"}`
+  - `{"action": "profile_import", "profile": { … }}`
+- 响应：`import_ok=true` 时附规范化后的 `profile` 与 `summary`；
+  `import_ok=false` 时附 `errors[]`（可读的校验原因列表）——这属于**校验结果**，非系统错误；
+  两个输入都缺失时返回 `ok=false`。
+
+**档案 schema（1.0）**：
+
+- 顶层：`schema_version` / `learner`（label、note）/ `sessions[]` / `items[]`；
+- `sessions[]`（**唯一事实源**）：`session_id` / `date` / `scene_id` / `scene_name` /
+  `matched_kind` / `rounds` / `expressions[]`（本场学过）/ `used_expressions[]`（检测到被使用）/
+  `transferred_expressions[]`（检测到被迁移复用）/ `issues[]` / `transfer`；
+- `items[]`（**派生视图**，由 `sessions` 重建；手工编辑不生效）：
+  `expression` / `status` / `evidence[]`（`session_id` + `type`）；
+- 三态掌握：`contacted`（接触过）→ `assisted`（提示下使用）→ `independent`（独立迁移使用），
+  **单调升级**；判定为**近似**（内容词与句式骨架的复用检测），不等于语义级掌握评估。
+
 ## 错误处理
 
 | 场景 | 响应 |

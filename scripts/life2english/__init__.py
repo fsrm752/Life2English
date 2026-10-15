@@ -19,4 +19,5 @@ __all__ = [
     "summary",
     "session",
     "model_api",
+    "profile",
 ]

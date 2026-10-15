@@ -64,7 +64,7 @@ echo '{"action":"run","scene_id":"campus_canteen","answers":["Could I get a set 
   | python scripts/skill_api.py
 ```
 
-支持的 action：`list_scenes` / `recognize` / `task` / `interact` / `feedback` / `transfer` / `summary` / `run` / `version`。
+支持的 action：`list_scenes` / `recognize` / `task` / `interact` / `feedback` / `transfer` / `summary` / `run` / `profile_export` / `profile_import` / `version`。
 
 ## 参考示例场景（11 个 · 质量基准）
 
@@ -98,7 +98,7 @@ Life2English/
 │   ├── life2english_cli.py   #   交互式 CLI 入口（测试/调试用）
 │   ├── skill_api.py          #   非交互式 JSON 协议入口
 │   ├── data/scenarios.json   #   参考示例场景数据（11 个，与逻辑分离）
-│   └── life2english/         #   核心逻辑（识别/任务/对话/反馈/迁移/总结）
+│   └── life2english/         #   核心逻辑（识别/任务/对话/反馈/迁移/总结/档案）
 ├── references/               # 参考资料（SKILL.md 通过 @ 引用）
 │   ├── teaching_guide.md     #   动态教学执行细则（角色/反馈/迁移/异常）
 │   ├── protocol.md           #   输入输出协议
@@ -132,12 +132,15 @@ Life2English/
   - 表达反馈覆盖拼写、大小写、a/an、主谓一致、代词宾格、动词不定式、名词数、词性、时态提示、常见中式表达等**有限类型**，
     **语义通顺度、复杂语法、地道性无法可靠判断**；
   - 情境应答为**模板化**，不是真实模型对话；
+- **学习记录（可选）**：会话可导出为结构化**学习档案**（JSON，由调用方自行保存；技能**不做自动持久化**，
+  不虚构保存）；档案只含学习表现数据（表达清单、问题统计、迁移记录），**不保存对话原文**（数据最小化）。
+  入口：`profile_export`（合并并导出）/ `profile_import`（校验读入）；
 - 本仓库为**纯 Skill 形态**：不含独立应用、服务端或站点部署；未来模型接入接口为
   `scripts/life2english/model_api.py`（默认纯本地）。
 
 ## 质量与验证
 
-开发机上建有完整的自动化测试体系，共 **9 个套件**。
+开发机上建有完整的自动化测试体系，共 **11 个套件**。
 
 > ⚠️ **以下命令运行于开发工作区**：本发布仓库**不含 `tests/`**，克隆后无法直接执行。
 > 测试代码与运行记录保留在开发工作区内，不随技能包分发。
@@ -150,19 +153,21 @@ python -X utf8 tests/run_all.py --fast   # 跳过端到端演示（较慢）
 | # | 套件 | 测什么 | 依赖 |
 |---|---|---|---|
 | 1 | `tests/test_inputs.py` | 场景识别五类输入 + 反馈引擎断言（unittest） | 技能本体 |
-| 2 | `tests/test_skill_api.py` | JSON 协议层 9 个 action 全量 | 技能本体 |
+| 2 | `tests/test_skill_api.py` | JSON 协议层全部 action | 技能本体 |
 | 3 | `tests/test_feedback_rules.py` | 表达反馈规则引擎（拼写 / 用法 / 中式表达等） | 技能本体 |
-| 4 | `tests/test_stability.py` | 异常与边界稳定性（含随机模糊输入） | 技能本体 |
-| 5 | `tests/check_skill_instructions.py` | `SKILL.md` 指令层检查 | 技能本体 |
-| 6 | `tests/run_input_tests.py` | 五类输入程序级实测（真实运行 CLI） | 开发工作区（写 `records/`） |
-| 7 | `tests/check_doc_consistency.py` | 文档—代码一致性（计数 / 清单 / 单一数据源） | 开发工作区（读 `DESIGN.md`、`docs/`） |
-| 8 | `tests/check_skill_package.py` | 技能包结构合规 + 打包 | 开发工作区（写 `dist/`） |
-| 9 | `demo/demo_session.py` | 端到端连续演示 | 开发工作区（写 `records/`） |
+| 4 | `tests/eval_feedback.py` | 反馈引擎独立语料评测（203 条 · 误报 / 召回指标） | 开发工作区（读 `tests/corpus/`） |
+| 5 | `tests/test_stability.py` | 异常与边界稳定性（含随机模糊输入） | 技能本体 |
+| 6 | `tests/test_profile.py` | 学习者档案（schema / 三态 / 往返 / 幂等） | 技能本体 |
+| 7 | `tests/check_skill_instructions.py` | `SKILL.md` 指令层检查 | 技能本体 |
+| 8 | `tests/run_input_tests.py` | 五类输入程序级实测（真实运行 CLI） | 开发工作区（写 `records/`） |
+| 9 | `tests/check_doc_consistency.py` | 文档—代码一致性（计数 / 清单 / 单一数据源） | 开发工作区（读 `DESIGN.md`、`docs/`） |
+| 10 | `tests/check_skill_package.py` | 技能包结构合规 + 打包 | 开发工作区（写 `dist/`） |
+| 11 | `demo/demo_session.py` | 端到端连续演示 | 开发工作区（写 `records/`） |
 
 > **发布口径**：`tests/`、`demo/`、`docs/`、`records/` 与 `DESIGN.md` 均为**开发件**，
 > **不随技能包分发**，故上表套件运行于**开发工作区**，不是技能运行的前置条件。
-> 其中第 1–5 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
-> 第 6–9 个套件需要开发工作区的输出目录或过程文档。
+> 上表标注「技能本体」的 6 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
+> 标注「开发工作区」的 5 个套件需要开发工作区的额外资源（测试语料 / 输出目录 / 过程文档）。
 > 所有结论均来自实际运行，能力边界如实声明。
 
 ## 安装与打包
