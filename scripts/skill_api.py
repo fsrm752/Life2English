@@ -293,7 +293,9 @@ def _act_run(store: SceneStore, req: dict) -> dict:
         "task": _task_to_dict(session.task),
         "feedback": {
             "answers": [
-                {"answer": fb.answer, "issues": [_issue_to_dict(i) for i in fb.issues]}
+                # 与 feedback action 保持一致：截断条数透明化（D-09）
+                {"answer": fb.answer, "issues": [_issue_to_dict(i) for i in fb.issues],
+                 "suppressed_count": fb.suppressed_count}
                 for fb in report.answers
             ],
             "praises": report.praises,
@@ -302,12 +304,16 @@ def _act_run(store: SceneStore, req: dict) -> dict:
         },
         "transfer": {
             "task": {
+                # 与 transfer action 的生成载荷保持一致（含 keywords）
                 "scenario": session.transfer_task.scenario,
                 "prompt": session.transfer_task.prompt,
                 "example": session.transfer_task.example,
+                "keywords": session.transfer_task.keywords,
             },
             "result": (
                 {
+                    # 与 transfer action 的校验载荷保持一致（含 attempt 回显）
+                    "attempt": session.transfer_result.attempt,
                     "reused_keywords": session.transfer_result.reused_keywords,
                     "note": session.transfer_result.note,
                 }
@@ -474,7 +480,10 @@ def handle(req: dict) -> dict:
             "supported": sorted(ACTIONS),
         }
 
-    store = SceneStore()
+    try:
+        store = SceneStore()
+    except Exception as exc:  # 数据文件缺失 / 损坏：给可读原因，不让协议调用方拿到空响应
+        return {"ok": False, "error": f"场景数据加载失败：{exc}"}
     try:
         payload = ACTIONS[action](store, req)
     except ValueError as exc:

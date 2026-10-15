@@ -340,7 +340,12 @@ def run_once(store: SceneStore) -> None:
 
 def main() -> None:
     _setup_encoding()
-    store = SceneStore()
+    try:
+        store = SceneStore()
+    except Exception as exc:  # 数据文件缺失 / 损坏：给出可读原因，不抛栈
+        print(f"场景数据加载失败：{exc}")
+        print("请检查 scripts/data/scenarios.json 是否完整（可重新安装技能包）。")
+        sys.exit(1)
     show_banner(store)
 
     while True:

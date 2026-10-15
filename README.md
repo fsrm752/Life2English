@@ -141,7 +141,7 @@ Life2English/
 
 ## 质量与验证
 
-开发机上建有完整的自动化测试体系，共 **12 个套件**。
+开发机上建有完整的自动化测试体系，共 **13 个套件**。
 
 > ⚠️ **以下命令运行于开发工作区**：本发布仓库**不含 `tests/`**，克隆后无法直接执行。
 > 测试代码与运行记录保留在开发工作区内，不随技能包分发。
@@ -155,32 +155,36 @@ python -X utf8 tests/run_all.py --fast   # 跳过端到端演示（较慢）
 |---|---|---|---|
 | 1 | `tests/test_inputs.py` | 场景识别五类输入 + 反馈引擎断言（unittest） | 技能本体 |
 | 2 | `tests/test_skill_api.py` | JSON 协议层全部 action | 技能本体 |
-| 3 | `tests/test_feedback_rules.py` | 表达反馈规则引擎（拼写 / 用法 / 中式表达等） | 技能本体 |
-| 4 | `tests/eval_feedback.py` | 反馈引擎独立语料评测（203 条 · 误报 / 召回指标） | 开发工作区（读 `tests/corpus/`） |
-| 5 | `tests/test_stability.py` | 异常与边界稳定性（含随机模糊输入） | 技能本体 |
-| 6 | `tests/test_profile.py` | 学习者档案（schema / 三态 / 往返 / 幂等） | 技能本体 |
-| 7 | `tests/check_skill_instructions.py` | `SKILL.md` 指令层检查 | 技能本体 |
-| 8 | `tests/run_input_tests.py` | 五类输入程序级实测（真实运行 CLI） | 开发工作区（写 `records/`） |
-| 9 | `tests/check_doc_consistency.py` | 文档—代码一致性（计数 / 清单 / 单一数据源） | 开发工作区（读 `DESIGN.md`、`docs/`） |
-| 10 | `tests/check_skill_package.py` | 技能包结构合规 + 打包 | 开发工作区（写 `dist/`） |
-| 11 | `demo/demo_session.py` | 端到端连续演示 | 开发工作区（写 `records/`） |
-| 12 | `tests/check_python_syntax.py` | 全部 Python 文件语法检查（compile，不执行） | 技能本体 |
+| 3 | `tests/test_protocol_consistency.py` | 协议字段契约 · run 与分步一致性 · 降级路径 · 数据层边界 · CLI 冒烟 | 技能本体 |
+| 4 | `tests/test_feedback_rules.py` | 表达反馈规则引擎（拼写 / 用法 / 中式表达等） | 技能本体 |
+| 5 | `tests/eval_feedback.py` | 反馈引擎独立语料评测（203 条 · 误报 / 召回指标） | 开发工作区（读 `tests/corpus/`） |
+| 6 | `tests/test_stability.py` | 异常与边界稳定性（含随机模糊输入） | 技能本体 |
+| 7 | `tests/test_profile.py` | 学习者档案（schema / 三态 / 往返 / 幂等） | 技能本体 |
+| 8 | `tests/check_skill_instructions.py` | `SKILL.md` 指令层检查 | 技能本体 |
+| 9 | `tests/run_input_tests.py` | 五类输入程序级实测（真实运行 CLI） | 开发工作区（写 `records/`） |
+| 10 | `tests/check_doc_consistency.py` | 文档—代码一致性（计数 / 清单 / 单一数据源） | 开发工作区（读 `DESIGN.md`、`docs/`） |
+| 11 | `tests/check_skill_package.py` | 技能包结构合规 + 打包 | 开发工作区（写 `dist/`） |
+| 12 | `demo/demo_session.py` | 端到端连续演示 | 开发工作区（写 `records/`） |
+| 13 | `tests/check_python_syntax.py` | 全部 Python 文件语法检查（compile，不执行） | 技能本体 |
 
 > **发布口径**：`tests/`、`demo/`、`docs/`、`records/` 与 `DESIGN.md` 均为**开发件**，
 > **不随技能包分发**，故上表套件运行于**开发工作区**，不是技能运行的前置条件。
-> 上表标注「技能本体」的 7 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
+> 上表标注「技能本体」的 8 个套件只依赖技能本体（`SKILL.md` + `scripts/` + `references/` + `templates/`）；
 > 标注「开发工作区」的 5 个套件需要开发工作区的额外资源（测试语料 / 输出目录 / 过程文档）。
 > 所有结论均来自实际运行，能力边界如实声明。
 
-**轨道 A 教学评估集**（人工执行，非自动化）：`tests/eval_trackA_cases.md` —— 10 个固定案例，
-覆盖快速模式、未预设场景、三类反馈、水平校准、用户自主权与能力边界；需在模型环境中逐案运行并记录原始输出，
-**未实际运行的案例不得标记为通过**（该评估集与轨道 B 的自动化结果互不替代）。
+**轨道 A 教学评估集**（人工执行，非自动化）：`tests/eval_trackA_cases.md` —— **17 个固定案例**，
+覆盖任务书要求的十类教学情景（初学者简单问题 / 正确推进 / 错误反馈 / 含糊澄清 / 同类错误 /
+翻译语法口语 / 超范围 / 不可靠判断 / 自动保存 / 无关引导）与用户自主权、快速模式、双轨边界；
+含 9 维度评分量表与评估报告模板。需在模型环境中逐案运行并记录原始输出，
+**未实际运行的案例不得标记为通过**（该评估集与轨道 B 的自动化结果互不替代；CI 无模型凭据，不做自动接入）。
 
-**持续集成（发布仓库侧）**：`.github/workflows/check.yml` 在 push / PR 时对发布面跑基础自检
-（`.github/checks/package_check.py`：frontmatter 解析、场景数据结构、@ 引用、协议 action 对齐、
-能力边界声明、Python 编译、`skill_api.py` 协议冒烟）。该自检**零运行时依赖**——
-PyYAML 仅 CI 校验用，缺失时自动退回内置校验。完整回归仍以开发工作区的 12 个套件为准，
-CI 只覆盖发布面关键项。
+**持续集成（发布仓库侧）**：`.github/workflows/check.yml` 在 push / PR 时对发布面跑两层检查——
+第一层 `.github/checks/package_check.py`（静态结构：frontmatter 解析、场景数据结构、@ 引用、
+协议 action 对齐、能力边界声明、Python 编译、协议冒烟），第二层 `.github/checks/regression_check.py`
+（程序回归：协议字段契约、run 与分步一致性、错误路径与数据损坏降级、数据层边界、档案往返、边界输入抽样）。
+两层均**零运行时依赖**（PyYAML 仅静态层校验用，缺失时显式告警并退回内置引擎，断言数量不减）；
+任一层失败 CI 即判失败。完整回归仍以开发工作区的 13 个套件为准，CI 覆盖发布面关键项。
 
 ## 安装与打包
 

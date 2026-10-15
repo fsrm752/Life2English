@@ -226,7 +226,7 @@
 - 输入（二选一）：
   - `{"action": "profile_import", "profile_text": "<档案 JSON 字符串>"}`
   - `{"action": "profile_import", "profile": { … }}`
-- 响应：`import_ok=true` 时附规范化后的 `profile` 与 `summary`；
+- 响应：`import_ok=true` 时附规范化后的 `profile` 与 `summary`（及保存责任说明 `note`）；
   `import_ok=false` 时附 `errors[]`（可读的校验原因列表）——这属于**校验结果**，非系统错误；
   两个输入都缺失时返回 `ok=false`。
 
@@ -250,6 +250,7 @@
 | 未知 action | `{"ok": false, "error": "未知 action：...", "supported": [...]}` |
 | 未知 scene_id | `{"ok": false, "error": "未知场景 scene_id：..."}` |
 | 无法由 input 定位场景 | `{"ok": false, "error": "无法从句输入定位场景..."}` |
+| 场景数据文件缺失 / 损坏 | `{"ok": false, "error": "场景数据加载失败：..."}`（`version` 不依赖数据，仍可用） |
 
 ## 模块级 API（进程内调用）
 
